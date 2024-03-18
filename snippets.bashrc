@@ -287,7 +287,7 @@ function git_init_submodule() {
     git submodule add "$submodule_url" "$submodule_path"
     
     # Mettre à jour et initialiser le sous-module
-    git submodule update --init --recursive
+    #git submodule update --init --recursive
     
     # Afficher un message de confirmation
     echo "Sous-module initialisé avec succès : $submodule_path"
