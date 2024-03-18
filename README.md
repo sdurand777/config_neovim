@@ -1,2 +1,1 @@
-# config_neovim
-Config neovim pour dev
+Config neovim public
