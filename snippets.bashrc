@@ -571,3 +571,77 @@ function run_docker_network_gpus() {
         -v "$(pwd)":/code \
         "$docker_image"
 }
+
+
+
+run_docker_command() {
+    # Description de la commande
+    echo "Utilisation: run_docker_command <nom_image> [<chemin_volume>] [<commande_conda>]"
+
+    # Arguments de la fonction
+    local image_name="$1"
+    local volume="$2"
+    local conda_command="$3"
+    
+    # Construction de la commande Docker
+    local docker_command="docker run -it --rm --network host --gpus all"
+    docker_command+=" --env=XAUTHORITY=/tmp/.docker.xauth --env=DISPLAY"
+    docker_command+=" --volume=/tmp/.docker.xauth:/tmp/.docker.xauth:rw --volume=/tmp/.X11-unix:/tmp/.X11-unix:rw --volume=/var/run/bumblebee.socket:/var/run/bumblebee.socket:rw --device /dev/dri/card0:/dev/dri/card0"
+    
+    # Ajout du volume si spécifié
+    if [ -n "$volume" ]; then
+        docker_command+=" -v $volume:/home/docker/dossier_ply"
+    fi
+    
+    # Construction de la commande Conda si spécifié
+    if [ -n "$conda_command" ]; then
+        docker_command+=" $image_name bash -c \"conda run --no-capture-output -n droidenv $conda_command\""
+    else
+        docker_command+=" $image_name bash"
+    fi
+    
+    # Exécution de la commande Docker
+    eval "$docker_command"
+}
+
+
+move_docker() {
+    # Stop Docker
+    sudo systemctl stop docker   # Pour les systèmes utilisant systemd
+
+    # Copier les fichiers de Docker vers le nouveau chemin
+    sudo rsync -aP /var/lib/docker "$1"
+
+    # Modifier la configuration Docker
+    sudo bash -c "echo '{\"data-root\": \"$1\"}' > /etc/docker/daemon.json"
+
+    # Redémarrer Docker
+    sudo systemctl start docker   # Pour les systèmes utilisant systemd
+
+    # Vérifier Docker
+    docker ps
+
+    # Supprimer les anciens fichiers (facultatif)
+    read -p "Supprimer les anciens fichiers de Docker ? [y/n]: " choice
+    if [ "$choice" = "y" ]; then
+        sudo rm -rf /var/lib/docker
+    fi
+}
+
+rm_neovim(){
+    rm -rf ~/.config/nvim
+    rm -rf ~/.local/share/nvim
+    rm -rf ~/.cache/nvim
+}
+
+
+update_docker_compose_version() {
+# Check the current version of Docker Compose
+    docker-compose version
+# Download the latest version of Docker Compose
+    sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+# Apply executable permissions to the binary
+    sudo chmod +x /usr/local/bin/docker-compose
+# Verify the installation
+    docker-compose version
+}
