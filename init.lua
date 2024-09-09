@@ -549,4 +549,18 @@ function ReplaceBraces()
 end
 
 
+-- Fonction pour commenter les lignes contenant "import pdb"
+function CommentPdbLines()
+  local start_line = 1
+  local end_line = vim.fn.line('$')  -- Obtient le nombre total de lignes dans le fichier
+  for line_num = start_line, end_line do
+    local line_content = vim.fn.getline(line_num)
+    if string.match(line_content, "import%s+pdb") then
+      -- Commente la ligne si elle contient "import pdb"
+      vim.fn.setline(line_num, "# " .. line_content)
+    end
+  end
+end
 
+-- Créer une commande personnalisée : :CommentPdb
+vim.api.nvim_create_user_command('CommentPdb', CommentPdbLines, {})
