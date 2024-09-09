@@ -645,3 +645,11 @@ update_docker_compose_version() {
 # Verify the installation
     docker-compose version
 }
+
+docker_remove_none_images(){
+    docker images -qf "dangling=true" | xargs docker rmi
+}
+
+
+
+
