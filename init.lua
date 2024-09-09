@@ -564,3 +564,23 @@ end
 
 -- Créer une commande personnalisée : :CommentPdb
 vim.api.nvim_create_user_command('CommentPdb', CommentPdbLines, {})
+
+
+-- Fonction pour décommenter les lignes contenant "import pdb"
+function UncommentPdbLines()
+  local start_line = 1
+  local end_line = vim.fn.line('$')  -- Obtient le nombre total de lignes dans le fichier
+  for line_num = start_line, end_line do
+    local line_content = vim.fn.getline(line_num)
+    -- Si la ligne est commentée et contient "import pdb", on la décommente
+    if string.match(line_content, "^%s*#%s*import%s+pdb") then
+      -- Retirer le premier # (et les espaces éventuels après)
+      local uncommented_line = string.gsub(line_content, "^%s*#%s*", "")
+      vim.fn.setline(line_num, uncommented_line)
+    end
+  end
+end
+
+-- Créer une commande personnalisée : :UncommentPdb
+vim.api.nvim_create_user_command('UncommentPdb', UncommentPdbLines, {})
+
