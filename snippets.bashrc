@@ -1,5 +1,31 @@
 alias CoTEST='echo "CoTEST test"'
 
+
+function install_mamba() {
+# Install Mamba if not already installed
+    CONDA_DIR="$HOME/conda"
+    MAMBA_INSTALLER="$HOME/Mambaforge.sh"
+
+# Check if conda is already installed
+    if [ ! -d "$CONDA_DIR" ]; then
+        echo "Mamba not found, installing Mamba..."
+        
+        # Download the Mamba installer
+        wget -O "$MAMBA_INSTALLER" "https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-$(uname)-$(uname -m).sh"
+        
+        # Run the installer
+        bash "$MAMBA_INSTALLER" -b -p "$CONDA_DIR"
+        
+        # Remove the installer after installation
+        rm "$MAMBA_INSTALLER"
+    fi
+
+# Add Conda to PATH
+    export PATH="$CONDA_DIR/bin:$PATH"
+}
+
+
+
 alias condamamba='source "${HOME}/conda/etc/profile.d/conda.sh"
                         source "${HOME}/conda/etc/profile.d/mamba.sh"'
 
