@@ -697,4 +697,36 @@ update_nvidia_toolkit_list()
 
 
 
+fix_nvidia_runtime() 
+{
+    DAEMON_FILE="/etc/docker/daemon.json"
+    NVIDIA_RUNTIME_CONFIG='{
+    "runtimes": {
+        "nvidia": {
+            "path": "nvidia-container-runtime",
+            "runtimeArgs": []
+        }
+    }
+}'
+
+    # Vérifie si le fichier daemon.json existe
+    if [ ! -f "$DAEMON_FILE" ]; then
+        echo "Le fichier $DAEMON_FILE n'existe pas. Création d'un nouveau fichier."
+        echo "$NVIDIA_RUNTIME_CONFIG" | sudo tee "$DAEMON_FILE" > /dev/null
+    else
+        # Vérifie si le runtime nvidia est déjà configuré
+        if grep -q '"nvidia": {' "$DAEMON_FILE"; then
+            echo "Le runtime NVIDIA est déjà configuré dans $DAEMON_FILE."
+        else
+            echo "Ajout de la configuration NVIDIA runtime dans $DAEMON_FILE."
+            
+            # On suppose que le fichier est en JSON valide, on insère la configuration du runtime nvidia
+            sudo jq '.runtimes.nvidia.path = "nvidia-container-runtime" | .runtimes.nvidia.runtimeArgs = []' "$DAEMON_FILE" > /tmp/daemon_tmp.json && sudo mv /tmp/daemon_tmp.json "$DAEMON_FILE"
+        fi
+    fi
+
+    echo "Redémarrage de Docker..."
+    sudo systemctl restart docker
+    echo "Docker a été redémarré. Vérifiez avec 'docker info'."
+}
 
