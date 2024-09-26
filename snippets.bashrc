@@ -730,3 +730,36 @@ fix_nvidia_runtime()
     echo "Docker a été redémarré. Vérifiez avec 'docker info'."
 }
 
+
+export_conda_env_vars() {
+    if [ -z "$1" ]; then
+        echo "Usage: export_conda_env_vars <env_name>"
+        return 1
+    fi
+
+    ENV_NAME=$1
+    CONDA_PATH="$HOME/conda/envs/$ENV_NAME"
+
+    if [ ! -d "$CONDA_PATH" ]; then
+        echo "Error: Environment '$ENV_NAME' does not exist at $CONDA_PATH."
+        return 1
+    fi
+
+    # Récupérer dynamiquement la version de Python dans l'environnement Conda
+    PYTHON_VERSION=$("$CONDA_PATH/bin/python" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+
+    # Vérifier si la commande précédente a réussi
+    if [ $? -ne 0 ]; then
+        echo "Error: Could not determine Python version in environment '$ENV_NAME'."
+        return 1
+    fi
+
+    # Exporter PYTHONPATH dynamiquement en fonction de la version Python
+    export PYTHONPATH="$CONDA_PATH/lib/python$PYTHON_VERSION/site-packages:$PYTHONPATH"
+    
+    # Exporter LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH="$CONDA_PATH/lib:$LD_LIBRARY_PATH"
+
+    echo "Environment variables set for Conda environment '$ENV_NAME' with Python $PYTHON_VERSION."
+}
+
