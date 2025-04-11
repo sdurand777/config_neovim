@@ -13,6 +13,13 @@ vim.opt.clipboard="unnamedplus"
 -- allow the mouse in neovim
 vim.opt.mouse = "a"
 
+-- Vérifie si on est dans VSCode
+if vim.g.vscode then
+  -- Ne rien faire pour les highlights (ou désactiver ceux déjà chargés si besoin)
+  return
+end
+
+
 -- to get smartindent
 vim.opt.tabstop = 4
 vim.opt.softtabstop = 4
