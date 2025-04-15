@@ -222,24 +222,140 @@ function remove_img_above_n()
 }
 
 
+function fonction_delete() {
+    # Vérifie si un argument est fourni
+    if [ $# -ne 1 ]; then
+        echo "Usage: fonction_delete nombre_images_a_supprimer"
+        return 1
+    fi
+
+    # Récupère le nombre d'images à supprimer
+    local nb_a_supprimer=$1
+    
+    # Compte le nombre total d'images JPG dans le dossier
+    local total_images=$(find . -maxdepth 1 -name "*.JPG" | wc -l)
+    
+    if [ $total_images -eq 0 ]; then
+        echo "Aucune image JPG trouvée dans le répertoire courant."
+        return 1
+    fi
+    
+    if [ $nb_a_supprimer -ge $total_images ]; then
+        echo "Attention: Vous essayez de supprimer autant ou plus d'images qu'il n'en existe."
+        echo "Total d'images disponibles: $total_images"
+        read -p "Voulez-vous supprimer toutes les images sauf une? (o/n) " reponse
+        if [[ "$reponse" != "o" && "$reponse" != "O" ]]; then
+            return 1
+        fi
+        nb_a_supprimer=$((total_images - 1))
+    fi
+    
+    echo "Suppression de $nb_a_supprimer images sur $total_images..."
+    
+    # Calcule l'intervalle pour une répartition équitable
+    local intervalle=$(bc -l <<< "scale=0; $total_images / ($nb_a_supprimer + 1)")
+    
+    if [ $intervalle -lt 1 ]; then
+        intervalle=1
+    fi
+    
+    # Affiche un résumé avant de procéder
+    echo "Intervalle calculé: environ 1 image sur $intervalle sera conservée"
+    read -p "Continuer? (o/n) " reponse
+    if [[ "$reponse" != "o" && "$reponse" != "O" ]]; then
+        return 1
+    fi
+    
+    # Crée une liste temporaire avec tous les fichiers
+    find . -maxdepth 1 -name "*.JPG" | sort > /tmp/liste_images.txt
+    
+    # Sélectionne les images à garder (une tous les 'intervalle')
+    local a_garder=()
+    local i=0
+    while read -r fichier; do
+        if [ $((i % intervalle)) -eq 0 ]; then
+            a_garder+=("$fichier")
+        fi
+        i=$((i + 1))
+    done < /tmp/liste_images.txt
+    
+    # Limite le nombre d'images à garder pour s'assurer de supprimer le bon nombre
+    local nb_a_garder=$((total_images - nb_a_supprimer))
+    if [ ${#a_garder[@]} -gt $nb_a_garder ]; then
+        # Sélectionne aléatoirement parmi les images à garder
+        local index_aleatoires=$(shuf -i 0-$((${#a_garder[@]} - 1)) -n $nb_a_garder)
+        local nouvelles_a_garder=()
+        for index in $index_aleatoires; do
+            nouvelles_a_garder+=("${a_garder[$index]}")
+        done
+        a_garder=("${nouvelles_a_garder[@]}")
+    fi
+    
+    # Crée un fichier temporaire avec les images à garder
+    > /tmp/a_garder.txt
+    for fichier in "${a_garder[@]}"; do
+        echo "$fichier" >> /tmp/a_garder.txt
+    done
+    
+    # Supprime toutes les images qui ne sont pas dans la liste à garder
+    local compteur=0
+    while read -r fichier; do
+        if ! grep -q "^$fichier$" /tmp/a_garder.txt; then
+            rm "$fichier"
+            compteur=$((compteur + 1))
+            echo -ne "Suppression en cours: $compteur/$nb_a_supprimer\r"
+        fi
+    done < /tmp/liste_images.txt
+    
+    echo -e "\nSuppression terminée. $compteur images supprimées."
+    
+    # Nettoie les fichiers temporaires
+    rm /tmp/liste_images.txt /tmp/a_garder.txt
+}
+
 function skip_n_img()
 {
     dossier="./"  # Remplacez par le chemin vers votre dossier
-    extension=".jpg"  # Remplacez par l'extension de vos fichiers
-
-# Parcourez les fichiers dans le dossier
-    for fichier in "$dossier"/*"$extension"; do
+    extension=".JPG"  # Remplacez par l'extension de vos fichiers
+    
+    # Utilisez find pour éviter les problèmes d'expansion de wildcards
+    for fichier in $(find "$dossier" -name "*$extension"); do
         nom_fichier=$(basename "$fichier")  # Obtenez le nom du fichier sans le chemin
         nom_base=${nom_fichier%.*}  # Obtenez le nom du fichier sans l'extension
         numero_image=${nom_base#*_}  # Obtenez le numéro d'image à partir du nom
-
-        #Supprimez le fichier si l'index est un multiple de 5
-        if [ $((numero_image % $1)) -ne 0 ]; then
-            rm "$fichier"  # Supprimez le fichier
-            echo "Fichier supprimé : $nom_fichier"
+        echo "$numera_image"
+        
+        # Vérifiez que numero_image est bien un nombre
+        if [[ "$numero_image" =~ ^[0-9]+$ ]]; then
+            # Supprimez le fichier si l'index n'est pas un multiple de $1
+            if [ $((numero_image % $1)) -ne 0 ]; then
+                rm "$fichier"  # Supprimez le fichier
+                echo "Fichier supprimé : $nom_fichier"
+            fi
+        else
+            echo "Ignoré : $nom_fichier (pas de numéro valide)"
         fi
     done
 }
+
+# function skip_n_img()
+# {
+#     dossier="./"  # Remplacez par le chemin vers votre dossier
+#     extension=".jpg"  # Remplacez par l'extension de vos fichiers
+#
+# # Parcourez les fichiers dans le dossier
+#     for fichier in "$dossier"/*"$extension"; do
+#         nom_fichier=$(basename "$fichier")  # Obtenez le nom du fichier sans le chemin
+#         nom_base=${nom_fichier%.*}  # Obtenez le nom du fichier sans l'extension
+#         numero_image=${nom_base#*_}  # Obtenez le numéro d'image à partir du nom
+#
+#         #Supprimez le fichier si l'index est un multiple de 5
+#         if [ $((numero_image % $1)) -ne 0 ]; then
+#             rm "$fichier"  # Supprimez le fichier
+#             echo "Fichier supprimé : $nom_fichier"
+#         fi
+#     done
+# }
 
 function delete_docker_image(){
     local image="$1"
